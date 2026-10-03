@@ -23,3 +23,6 @@ apps/*/pnpm-lock.yaml
 !pnpm-lock.yaml
 
 .tool-versions
+
+# Local dataset cleanup manifests and transaction journals
+cleanup-runs/
