@@ -99,3 +99,23 @@ pnpm -C apps/backend datasets:cleanup verify \
 node --test apps/backend/scripts/manual-cleanup/common.test.mjs \
   apps/backend/scripts/manual-cleanup/journal.test.mjs
 ```
+
+## 主网启动脚本
+
+仓库包含 `apps/backend/scripts/manual-cleanup/mainnet.sh`，无需手工拼装命令。
+
+```sh
+# 新克隆先生成本地清单；已有清单时不覆盖
+./apps/backend/scripts/manual-cleanup/mainnet.sh scan
+./apps/backend/scripts/manual-cleanup/mainnet.sh dry-run
+
+# 本地隐藏输入私钥，先执行3个；然后继续整份清单
+./apps/backend/scripts/manual-cleanup/mainnet.sh execute --include-abandoned --limit 3
+./apps/backend/scripts/manual-cleanup/mainnet.sh execute --include-abandoned
+./apps/backend/scripts/manual-cleanup/mainnet.sh status
+./apps/backend/scripts/manual-cleanup/mainnet.sh verify
+```
+
+默认运行目录为 `cleanup-runs/mainnet-20261004`。后续新扫描可设置 `MAINNET_CLEANUP_DIR=cleanup-runs/mainnet-新日期`；设置后，扫描、执行和验收都使用同一目录。`MAINNET_CLEANUP_PAYER` 可改变扫描的钱包，默认是当前 Dealbot 钱包。启动脚本默认8并发、2次确认、300ms RPC间隔。
+
+清单、密钥和交易进度均在本地；仓库只保存通用工具、启动脚本和说明。`execute --include-abandoned` 会选择未终止的弃置候选，执行前需核对要保留的数据集。
