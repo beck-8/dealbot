@@ -116,3 +116,28 @@ test("multi-transaction resume rebroadcasts in nonce order and retains unresolve
   assert.equal(broadcasts.length, 2);
   assert.deepEqual(state.pendingTransactions, [b]);
 });
+
+test("consumed nonce without saved receipt stops recovery without rebroadcasting", async () => {
+  const tx = { ...pending, nonce: 42 };
+  const state = { account: "0xaccount", pendingTransactions: [tx], datasets: {} };
+  let sent = false;
+  await assert.rejects(
+    recoverTransactions({
+      client: {
+        getTransactionReceipt: async () => {
+          throw missing;
+        },
+        getTransactionCount: async () => 43,
+        sendRawTransaction: async () => {
+          sent = true;
+        },
+      },
+      state,
+      save: () => {},
+      log: () => {},
+    }),
+    /NonceConflict/,
+  );
+  assert.equal(sent, false);
+  assert.deepEqual(state.pendingTransactions, [tx]);
+});

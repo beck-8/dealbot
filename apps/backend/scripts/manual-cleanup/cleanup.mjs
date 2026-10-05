@@ -143,6 +143,7 @@ if (state.pending) {
 }
 // Poll receipts directly: viem's replacement detection performs additional expensive RPC reads.
 const receiptClient = {
+  getTransactionCount: (args) => read(() => client.getTransactionCount(args)),
   getTransactionReceipt: (args) => read(() => client.getTransactionReceipt(args)),
   sendRawTransaction: (args) => read(() => client.sendRawTransaction(args)),
   async waitForTransactionReceipt({ hash, confirmations: depth, timeout }) {
@@ -238,7 +239,7 @@ async function eligible(d) {
   }
 }
 async function cleanup(id) {
-  for (let n = 0; n < 10000 && !stop; n++) {
+  cleanupLoop: for (let n = 0; n < 10000 && !stop; n++) {
     try {
       await simulate("cleanupPieces", [BigInt(id), 1n]);
     } catch (e) {
@@ -259,6 +260,9 @@ async function cleanup(id) {
       try {
         gas = await estimate("cleanupPieces", [BigInt(id), BigInt(batch)]);
       } catch (error) {
+        // Another cleaner can finish between our mode check and gas estimation.
+        // Recheck live/mode in the outer loop before recording completion.
+        if (revertName(error) === "DataSetNotInCleanupMode") continue cleanupLoop;
         if (batch === 1 || !/out of gas|SysErrOutOfGas/i.test(error.message ?? "")) throw error;
         batch = Math.max(1, Math.floor(batch / 2));
         continue;

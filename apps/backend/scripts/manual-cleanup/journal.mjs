@@ -71,6 +71,14 @@ export async function recoverTransactions(options) {
       await client.getTransactionReceipt({ hash: tx.hash });
     } catch (e) {
       if (e.name !== "TransactionReceiptNotFoundError") throw e;
+      if (state.account && tx.nonce !== undefined && client.getTransactionCount) {
+        const minedNonce = await client.getTransactionCount({ address: state.account, blockTag: "latest" });
+        if (minedNonce > tx.nonce) {
+          throw new Error(
+            `NonceConflict: nonce ${tx.nonce} has already been consumed but saved hash ${tx.hash} has no receipt. Reconcile the replacement transaction before resuming; use a dedicated cleanup wallet.`,
+          );
+        }
+      }
       try {
         await client.sendRawTransaction({ serializedTransaction: tx.raw });
       } catch {
